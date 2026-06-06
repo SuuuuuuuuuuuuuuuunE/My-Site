@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:100,200,300,400,500,600,700,800,900" type="text/css">
+    <link rel="stylesheet" href="../style.css">
+    <link rel="icon" href="../resources/Squarun Square.svg">
+    <title>Fractal Explorer - SunE's Site</title>
+</head>
+<body>
+    <!--Top Bar-->
+    <div class="topbar" id="topbar">
+        <a class="topbuttonimage" href="../index.html">
+            <img src="../resources/Squarun Square.svg" alt="Happy Square from Squarun" width="50" style="position:relative; top:-50%;">
+        </a>
+        <!--<a class="topbutton" href="https://pmss.sd43.bc.ca/sunnyx/"> Edublog </a>-->
+        <p> My Games: </p>
+        <a class="topbutton" href="../scratch.html"> Scratch </a>
+        <a class="topbutton" href="../python.html"> Python </a>
+        <a class="topbutton" href="../unity.html"> Unity </a>
+        <a class="topbutton" href="../games.html"> Games </a>
+    </div>
+
+    <!--Title-->
+    <div class="titlesection" style="background-image:url('resources/Fractal Explorer Thumbnail.png');">
+        <div>
+            <h1>Fractal Explorer</h1>
+        </div>
+    </div>
+
+    <!--Website-->
+    <div class="section">
+        <div>
+            <div style="width:100%">
+                <div style="background-color:#88d89d;">
+                    <p id="fps text" style="text-align:center;"> FPS: </p>
+
+                    <!--Iterations-->
+                    <div class="center">
+                        <!-- (AI)
+Why JavaScript Broke (and how parseInt fixed it)
+Modern JavaScript engines (like V8 in Chrome and Edge) are incredibly smart. When your code first ran, the engine noticed that maxIterations was always a number. It used this assumption to compile your while loop into hyper-fast machine code.
+
+When you moved the slider without parseInt, maxIterations suddenly became a string (e.g., "15"). JavaScript allows this because it features dynamic typing, but the underlying engine panicked:
+1. It had to throw away its hyper-fast compiled machine code (Deoptimization).
+2. It had to fall back to a slower, safer execution mode.
+3. In this slower mode, it couldn't optimize away the billions of tiny variables your loops were creating, causing your memory to quickly bloat.
+
+By using parseInt(this.value, 10), you kept the data type as a consistent number, allowing the engine to stay completely optimized.-->
+                        <div class="column">
+                            <input type="range" min="1" max="1000" step="1" value="30" style="width: 50vw;" oninput="maxIterations = parseInt(this.value, 10); maxIterationsText.textContent = `Iterations: ${this.value}`" />
+                            <p id="max iterations text" style="text-align:center;"> Iterations: 30 </p>
+                        </div>
+                    </div>
+
+                    <!--Zoom-->
+                    <div class="center">
+                        <div style="border:none; display:inline-flex; width:auto;">
+                            <div class="column">
+                                <input type="range" min="0.01" max="5" step="0.01" value="1" style="width: 200px;" oninput="zoomMultiplier = parseInt(this.value, 10); zoomMultiplierText.textContent = `Zoom Speed: ${this.value}`" />
+                                <p id="zoom multiplier text"> Zoom Speed: 1 </p>
+                            </div>
+                        </div>
+
+                        <div style="border:none; display:inline-flex; width:auto;">
+                            <button type="button" style="width:100px; height: 50px;" onmousedown="deltaScale = ZOOM_AMOUNT * zoomMultiplier" onmouseup="deltaScale = 0"> - </button>
+                            <button type="button" style="width:100px; height: 50px;" onmousedown="deltaScale = -ZOOM_AMOUNT * zoomMultiplier" onmouseup="deltaScale = 0"> + </button>
+                        </div>
+                    </div>
+
+                    <!--Move-->
+                    <div class="center">
+                        <div style="border: none; display: inline-flex; width: auto; align-items: center;">
+                            <div class="column">
+                                <input type="range" min="1" max="50" step="0.1" value="15" style="width: 200px;" oninput="moveMultiplier = parseInt(this.value, 10); moveMultiplierText.textContent = `Move Speed: ${this.value}`" />
+                                <p id="move multiplier text" style=""> Move Speed: 15 </p>
+                            </div>
+                        </div>
+
+                        <div style="border:none; display:inline-flex; width:auto;">
+                            <div class="column">
+                                <button type="button" style="width:100px; height: 50px;" onmousedown="deltaX = -viewScale * moveMultiplier" onmouseup="deltaX = 0"> < </button>
+                            </div>
+                            <div class="column">
+                                <button type="button" style="width:100px; height: 50px;" onmousedown="deltaY = -viewScale * moveMultiplier" onmouseup="deltaY = 0"> ^ </button>
+                                <button type="button" style="width:100px; height: 50px;" onmousedown="deltaY = viewScale * moveMultiplier" onmouseup="deltaY = 0"> v </button>
+                            </div>
+                            <div class="column">
+                                <button type="button" style="width:100px; height: 50px;" onmousedown="deltaX = viewScale * moveMultiplier" onmouseup="deltaX = 0"> > </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!--Canvas-->
+                    <div class="center">
+                            <canvas id="canvas" width="960" height="540" style="border: 5px solid #1b374f; border-radius: 10px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // SETUP ===================================================================================
+        /** @type {HTMLCanvasElement} */
+        var canvas = document.getElementById('canvas');
+        const CANVAS_WIDTH = canvas.width;
+        const CANVAS_HEIGHT = canvas.height;
+        /** @type {CanvasImageData} */
+        var ctx = canvas.getContext('2d', { willReadFrequently: true });
+        /** @type {HTMLParagraphElement} */
+        var fpsText = document.getElementById('fps text');
+        var maxIterationsText = document.getElementById('max iterations text');
+        var zoomMultiplierText = document.getElementById('zoom multiplier text');
+        var moveMultiplierText = document.getElementById('move multiplier text');
+
+        const lerp = (start, end, amt) => (1 - amt) * start + amt * end;
+        const LOG2 = Math.log(2);
+
+
+        // Frames + Time
+        //const FRAME_LOOP_LIMIT = CANVAS_WIDTH;
+        //var frameCount = 0;
+
+        var lastTimestamp = -1;
+
+
+        // Logic
+        //var board = Array(CANVAS_WIDTH);
+        //for (let x = 0; x < CANVAS_WIDTH; x++) {
+        //    board[x] = Array(CANVAS_HEIGHT);
+        //    for (let y = 0; y < CANVAS_HEIGHT; y++) {
+        //        board[x][y] = [0, 0, 0];
+        //    }
+        //}
+        var maxIterations = 30;
+        const COLOUR_RAMP = [
+            [0, 10, 43],
+            [43, 180, 204],
+            [161, 235, 106],
+            [239, 245, 122],
+            [255, 221, 166],
+            [255, 222, 219],
+            [255, 255, 255],
+            [0, 0, 0],
+        ]
+        const COLOUR_RAMP_SIZE = COLOUR_RAMP.length - 1;
+
+        var moveMultiplier = 15;
+        var viewX = 0;
+        var deltaX = 0;
+        var viewY = 0;
+        var deltaY = 0;
+        const ZOOM_AMOUNT = 0.1;
+        var zoomMultiplier = 1;
+        var viewScale = 0.005;
+        var deltaScale = 0;
+        //console.log(board);
+
+        // Canvas
+        ctx.fillStyle = "rgb(0, 0, 0)";
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        let imageData = ctx.getImageData(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        let imageDataArray = imageData.data;
+
+        
+        // UPDATE ===================================================================================
+        function update(timestamp) {
+            if (lastTimestamp == -1) {
+                lastTimestamp = timestamp;
+            }
+            let deltaTime = timestamp - lastTimestamp;
+            lastTimestamp = timestamp;
+
+            // FPS Text
+            fpsText.textContent = `FPS: ${Math.round(1 / (deltaTime / 1000))}`;
+
+            // Canvas
+            viewX += deltaX * (deltaTime / 30);
+            viewY += deltaY * (deltaTime / 30);
+            viewScale *= 1 + deltaScale * (deltaTime / 30);
+
+            for (let pixelX = 0; pixelX < CANVAS_WIDTH; pixelX++) {
+                for (let pixelY = 0; pixelY < CANVAS_HEIGHT; pixelY++) {
+                    /*
+                        Algorithm from https://en.wikipedia.org/wiki/Plotting_algorithms_for_the_Mandelbrot_set#Optimized_escape_time_algorithms
+                        (x0, y0) = (xLocation, yLocation)
+                    */
+                    let xLocation = (pixelX - CANVAS_WIDTH / 2) * viewScale + viewX;
+                    let yLocation = (pixelY - CANVAS_HEIGHT / 2) * viewScale + viewY;
+                    let x = 0;
+                    let y = 0;
+                    let x2 = 0;
+                    let y2 = 0;
+                    let iteration = 0;
+
+                    while (x2 + y2 <= 4 && iteration < maxIterations) {
+                        x2 = x * x;
+                        y2 = y * y;
+                        y = 2 * x * y + yLocation;
+                        x = x2 - y2 + xLocation;
+                        iteration++;
+                    }
+
+                    // Colour
+                    let colour;
+                    if (pixelX == CANVAS_WIDTH / 2 && pixelY == CANVAS_HEIGHT / 2) colour = [255, 255, 255];
+                    else if (iteration < maxIterations) {
+                        let log = Math.log(x * x + y * y) / 2;
+                        log = Math.log(log / LOG2) / LOG2;
+                        iteration += 1 - log;
+
+                        let colourIndex = iteration / maxIterations * COLOUR_RAMP_SIZE;
+                        let colour1 = COLOUR_RAMP[Math.floor(colourIndex)]
+                        let colour2 = COLOUR_RAMP[Math.floor(colourIndex + 1)]
+
+                        if (colour1 === undefined || colour2 === undefined) colour = COLOUR_RAMP[0];
+                        else colour = [
+                            lerp(colour1[0], colour2[0], colourIndex % 1),
+                            lerp(colour1[1], colour2[1], colourIndex % 1),
+                            lerp(colour1[2], colour2[2], colourIndex % 1),
+                        ];
+                    }
+                    // Black
+                    else {
+                        colour = COLOUR_RAMP.at(-1);
+                    }
+
+                    
+                    let pixelIndex = pixelY * CANVAS_WIDTH + pixelX;
+                    [
+                        imageDataArray[pixelIndex * 4],     // pixelIndex * 4, because each set is of RGBA, just the A value is not set
+                        imageDataArray[pixelIndex * 4 + 1],
+                        imageDataArray[pixelIndex * 4 + 2]
+                    ] = colour;
+                }
+            }
+
+            // Canvas
+            ctx.putImageData(imageData, 0, 0);
+
+
+            //frameCount = frameCount == FRAME_LOOP_LIMIT ? 0 : frameCount + 1;
+
+            requestAnimationFrame(update);
+        }
+
+        requestAnimationFrame(update);
+    </script>
+    
+</body>
+</html>

@@ -43,6 +43,7 @@ div.topbar a.topbutton:link, a.topbuttonimage:link, a.button:link, a.topbutton:v
     padding:10px;
     text-decoration: none;
     display: inline-block;
+    transition: all .2s;
 }
 
 a.topbutton:link, a.topbutton:visited, a.topbuttonimage:link, a.topbuttonimage:visited, div.topbar p {
@@ -102,6 +103,26 @@ div.section {
                 padding: 10px;
                 color: #0c120c;
             }
+
+                div.section div div div.center {
+                    display: flex;
+                    border: none;
+                    width: calc(100% - 50px);
+                    justify-content: center;
+                    margin: 0px;
+                    padding: 0px;
+                }
+
+                    div.section div div div.center div.column {
+                        display: inline-flex;
+                        border: none;
+                        border-radius: 0px;
+                        justify-content: center;
+                        flex-direction: column;
+                        width: auto;
+                        margin: 0px;
+                        padding: 0px;
+                    }
 
 div.page {
     overflow-x: clip;
