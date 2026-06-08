@@ -109,6 +109,7 @@ div.section {
                     border: none;
                     width: calc(100% - 50px);
                     justify-content: center;
+                    align-items: center;
                     margin: 0px;
                     padding: 0px;
                 }

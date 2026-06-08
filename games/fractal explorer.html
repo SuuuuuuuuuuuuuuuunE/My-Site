@@ -93,7 +93,28 @@ By using parseInt(this.value, 10), you kept the data type as a consistent number
 
                     <!--Canvas-->
                     <div class="center">
-                            <canvas id="canvas" width="960" height="540" style="border: 5px solid #1b374f; border-radius: 10px;"></canvas>
+                        <canvas id="canvas" width="960" height="540" style="border: 5px solid #1b374f; border-radius: 10px;"></canvas>
+                    </div>
+
+                    <!--Location-->
+                    <div class="center">
+                        <p> Location: X (real) </p>
+                        <input id="input view x" type="text" style="width:100px; height:20px;" onchange="if (isNaN(this.value)) this.value = viewX; else viewX = parseFloat(this.value);" />
+                        <p> Y (imaginary) </p>
+                        <input id="input view y" type="text" style="width: 100px; height: 20px;" onchange="if (isNaN(this.value)) this.value = viewY; else viewY = parseFloat(this.value);" />
+                        <p> Zoom: </p>
+                        <input id="input view scale" type="text" style="width: 100px; height: 20px;" onchange="if (isNaN(this.value)) this.value = viewScale; else viewScale = parseFloat(this.value);" />
+                    </div>
+
+                    <!--Presets-->
+                    <div class="center">
+                        <p id="preset text"> Colour Scheme: </p>
+                        <select style="height:40px;" onchange="colourRamp = COLOUR_RAMP_PRESETS[parseInt(this.value)]">
+                            <option value="0"> Default </option>
+                            <option value="1"> Website </option>
+                            <option value="2"> Grayscale </option>
+                        </select>
+                        
                     </div>
                 </div>
             </div>
@@ -114,6 +135,9 @@ By using parseInt(this.value, 10), you kept the data type as a consistent number
         var maxIterationsText = document.getElementById('max iterations text');
         var zoomMultiplierText = document.getElementById('zoom multiplier text');
         var moveMultiplierText = document.getElementById('move multiplier text');
+        var inputViewX = document.getElementById('input view x');
+        var inputViewY = document.getElementById('input view y');
+        var inputViewScale = document.getElementById('input view scale');
 
         const lerp = (start, end, amt) => (1 - amt) * start + amt * end;
         const LOG2 = Math.log(2);
@@ -135,20 +159,38 @@ By using parseInt(this.value, 10), you kept the data type as a consistent number
         //    }
         //}
         var maxIterations = 30;
-        const COLOUR_RAMP = [
-            [0, 10, 43],
-            [43, 180, 204],
-            [161, 235, 106],
-            [239, 245, 122],
-            [255, 221, 166],
-            [255, 222, 219],
-            [255, 255, 255],
-            [0, 0, 0],
+        const COLOUR_RAMP_PRESETS = [
+            [  // Default
+                [0, 10, 43],
+                [43, 180, 204],
+                [161, 235, 106],
+                [239, 245, 122],
+                [255, 221, 166],
+                [255, 222, 219],
+                [255, 255, 255],
+                [0, 0, 0]
+            ],
+            [  // Website
+                [136, 216, 157],
+                [41, 227, 174],
+                [35, 193, 204],
+                [38, 156, 189],
+                [42, 100, 133],
+                [17, 34, 51],
+                [33, 219, 207],
+                [0, 0, 0]
+            ],
+            [  // Grayscale
+                [0, 0, 0],
+                [255, 255, 255],
+                [0, 0, 0]
+            ],
+
         ]
-        const COLOUR_RAMP_SIZE = COLOUR_RAMP.length - 1;
+        var colourRamp = COLOUR_RAMP_PRESETS[0];
 
         var moveMultiplier = 15;
-        var viewX = 0;
+        var viewX = -.5;
         var deltaX = 0;
         var viewY = 0;
         var deltaY = 0;
@@ -157,6 +199,11 @@ By using parseInt(this.value, 10), you kept the data type as a consistent number
         var viewScale = 0.005;
         var deltaScale = 0;
         //console.log(board);
+
+        // Location Input
+        inputViewX.value = viewX;
+        inputViewY.value = viewY;
+        inputViewScale.value = viewScale;
 
         // Canvas
         ctx.fillStyle = "rgb(0, 0, 0)";
@@ -176,10 +223,17 @@ By using parseInt(this.value, 10), you kept the data type as a consistent number
             // FPS Text
             fpsText.textContent = `FPS: ${Math.round(1 / (deltaTime / 1000))}`;
 
+            // Location Input
+            if (deltaX || deltaY || deltaScale) {
+                inputViewX.value = viewX;
+                inputViewY.value = viewY;
+                inputViewScale.value = viewScale;
+            }
+
             // Canvas
             viewX += deltaX * (deltaTime / 30);
             viewY += deltaY * (deltaTime / 30);
-            viewScale *= 1 + deltaScale * (deltaTime / 30);
+            viewScale *= Math.max(0.1, 1 + deltaScale * (deltaTime / 30));
 
             for (let pixelX = 0; pixelX < CANVAS_WIDTH; pixelX++) {
                 for (let pixelY = 0; pixelY < CANVAS_HEIGHT; pixelY++) {
@@ -211,11 +265,11 @@ By using parseInt(this.value, 10), you kept the data type as a consistent number
                         log = Math.log(log / LOG2) / LOG2;
                         iteration += 1 - log;
 
-                        let colourIndex = iteration / maxIterations * COLOUR_RAMP_SIZE;
-                        let colour1 = COLOUR_RAMP[Math.floor(colourIndex)]
-                        let colour2 = COLOUR_RAMP[Math.floor(colourIndex + 1)]
+                        let colourIndex = iteration / maxIterations * (colourRamp.length - 2);
+                        let colour1 = colourRamp[Math.floor(colourIndex)]
+                        let colour2 = colourRamp[Math.floor(colourIndex + 1)]
 
-                        if (colour1 === undefined || colour2 === undefined) colour = COLOUR_RAMP[0];
+                        if (colour1 === undefined || colour2 === undefined) colour = colourRamp[0];
                         else colour = [
                             lerp(colour1[0], colour2[0], colourIndex % 1),
                             lerp(colour1[1], colour2[1], colourIndex % 1),
@@ -224,7 +278,7 @@ By using parseInt(this.value, 10), you kept the data type as a consistent number
                     }
                     // Black
                     else {
-                        colour = COLOUR_RAMP.at(-1);
+                        colour = colourRamp.at(-1);
                     }
 
                     
